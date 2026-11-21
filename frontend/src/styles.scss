@@ -1,0 +1,8 @@
+body { font-family: system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+header { display: flex; gap: 1rem; align-items: center; justify-content: space-between; }
+form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .5rem; margin: 1.5rem 0; }
+input, select, textarea, button { padding: .5rem; font: inherit; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: .5rem; border-bottom: 1px solid #ddd; }
+.error { color: #b00020; }
+.login { text-align: center; margin-top: 20vh; }
