@@ -1,6 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-export const STATUSES = ['TO_APPLY', 'SENT', 'INTERVIEW', 'OFFER', 'REJECTED'] as const;
+export const STATUSES = [
+  'TO_APPLY',
+  'SENT',
+  'INTERVIEW',
+  'OFFER',
+  'REJECTED',
+] as const;
 export type Status = (typeof STATUSES)[number];
 
 @Schema({ timestamps: true })

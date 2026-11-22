@@ -8,18 +8,18 @@ license: MIT
 
 Nest integrates the common ORMs; pick one per app and keep queries in services or repositories, not controllers.
 
-| | Package | Docs |
-| --- | --- | --- |
+|                                                      | Package                                   | Docs                                    |
+| ---------------------------------------------------- | ----------------------------------------- | --------------------------------------- |
 | Drizzle (SQL-like, schema in TypeScript, no classes) | `@nestjs/drizzle` + `drizzle-orm@rc` (v1) | https://docs.nestjs.com/data/drizzle.md |
-| TypeORM (entity classes, repositories) | `@nestjs/typeorm` + `typeorm` | https://docs.nestjs.com/data/typeorm.md |
-| Prisma, MongoDB (Mongoose), Sequelize, MikroORM | | `/data/prisma`, `/data/mongodb`, ... |
+| TypeORM (entity classes, repositories)               | `@nestjs/typeorm` + `typeorm`             | https://docs.nestjs.com/data/typeorm.md |
+| Prisma, MongoDB (Mongoose), Sequelize, MikroORM      |                                           | `/data/prisma`, `/data/mongodb`, ...    |
 
 If the project already uses one, keep it.
 
 ## Drizzle
 
 ```typescript
-DrizzleModule.forRoot({ drizzle, connection }) // drizzle(): your driver's, e.g. from 'drizzle-orm/libsql'
+DrizzleModule.forRoot({ drizzle, connection }); // drizzle(): your driver's, e.g. from 'drizzle-orm/libsql'
 ```
 
 then `@InjectDrizzle() private readonly db: LibSQLDatabase` (type from the driver's entry point) in any provider; no `forFeature()`. The client closes on `app.close()`/shutdown hooks. Tables are plain objects: `sqliteTable('notes', {...})`, types from `$inferSelect`/`$inferInsert`. Migrations: `drizzle-kit generate` then `drizzle-kit migrate`, or `migrate()` from the driver's `/migrator` at startup.

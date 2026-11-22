@@ -26,7 +26,14 @@ When the API contract fixes a different error body, map every `HttpException` in
 
 ```typescript
 // src/common/http-error.filter.ts
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import type { Response } from 'express';
 
 @Catch()
@@ -38,12 +45,23 @@ export class HttpErrorFilter implements ExceptionFilter {
     if (exception instanceof HttpException) {
       const body = exception.getResponse();
       const message =
-        typeof body === 'string' ? body : [(body as { message?: string | string[] }).message ?? exception.message].flat().join('; ');
-      res.status(exception.getStatus()).json({ code: exception.getStatus(), detail: message }); // the contract's shape
+        typeof body === 'string'
+          ? body
+          : [
+              (body as { message?: string | string[] }).message ??
+                exception.message,
+            ]
+              .flat()
+              .join('; ');
+      res
+        .status(exception.getStatus())
+        .json({ code: exception.getStatus(), detail: message }); // the contract's shape
       return;
     }
     this.logger.error(exception);
-    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ code: 500, detail: 'Internal server error' });
+    res
+      .status(HttpStatus.INTERNAL_SERVER_ERROR)
+      .json({ code: 500, detail: 'Internal server error' });
   }
 }
 
@@ -68,7 +86,10 @@ const app = await NestFactory.create<NestExpressApplication>(AppModule, {
 });
 app.useBodyParser('json', { limit: '100kb' }); // larger bodies: 413
 app.setGlobalPrefix('api', { exclude: ['health'] }); // /api/notes, but /health stays at the root
-app.enableVersioning({ type: VersioningType.URI, defaultVersion: ['1', VERSION_NEUTRAL] }); // /api/v1/notes and /api/notes
+app.enableVersioning({
+  type: VersioningType.URI,
+  defaultVersion: ['1', VERSION_NEUTRAL],
+}); // /api/v1/notes and /api/notes
 app.set('trust proxy', 1); // Express: behind one proxy, req.ip is the client's address, not the proxy's
 await app.listen(process.env.PORT ?? 3000);
 ```
@@ -89,7 +110,8 @@ export class RequestIdInterceptor implements NestInterceptor {
     const req = http.getRequest<Request>();
     const res = http.getResponse<Response>();
     const incoming = req.header('x-request-id');
-    const id = incoming && /^[\w.-]{1,128}$/.test(incoming) ? incoming : randomUUID();
+    const id =
+      incoming && /^[\w.-]{1,128}$/.test(incoming) ? incoming : randomUUID();
     res.setHeader('X-Request-Id', id);
     return next.handle();
   }

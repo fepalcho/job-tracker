@@ -5,16 +5,20 @@ Docs: https://docs.nestjs.com/modules.md, https://docs.nestjs.com/fundamentals/c
 ## One instance per module that lists it
 
 ```typescript
-@Module({ providers: [Counter, A], exports: [A] }) class ModA {}
-@Module({ providers: [Counter, B], exports: [B] }) class ModB {}
+@Module({ providers: [Counter, A], exports: [A] })
+class ModA {}
+@Module({ providers: [Counter, B], exports: [B] })
+class ModB {}
 // A and B get two different Counter instances: state set through one isn't seen by the other (checked).
 ```
 
 Share a provider by listing it in one module, exporting it, and importing that module wherever it's injected:
 
 ```typescript
-@Module({ providers: [Counter], exports: [Counter] }) class CounterModule {}
-@Module({ imports: [CounterModule], providers: [A], exports: [A] }) class ModA {}
+@Module({ providers: [Counter], exports: [Counter] })
+class CounterModule {}
+@Module({ imports: [CounterModule], providers: [A], exports: [A] })
+class ModA {}
 ```
 
 `@Global()` makes a module's exports injectable everywhere without importing it. Keep it for app-wide infrastructure (config, database, logging); a global feature module hides who depends on what.
@@ -38,7 +42,9 @@ export class NotesModule {}
 
 @Injectable()
 export class NotesService {
-  constructor(@Inject(NOTES_REPOSITORY) private readonly repository: NotesRepository) {} // NotesRepository: an interface
+  constructor(
+    @Inject(NOTES_REPOSITORY) private readonly repository: NotesRepository,
+  ) {} // NotesRepository: an interface
 }
 ```
 

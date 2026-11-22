@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+coverage/
+out-tsc/
+.angular/
+.firebase/
+package-lock.json
+*.tsbuildinfo
+e2e/cypress/screenshots/
+e2e/cypress/videos/

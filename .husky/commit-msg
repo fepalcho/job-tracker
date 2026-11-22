@@ -1,0 +1,18 @@
+MSG_FILE="$1"
+FIRST_LINE=$(head -n 1 "$MSG_FILE")
+PATTERN='^(JOB-[0-9]+ .+|(feat|fix|chore|ci|docs|test|refactor)(\(.+\))?: .+|Merge .+)'
+
+if ! printf '%s\n' "$FIRST_LINE" | grep -Eq "$PATTERN"; then
+  echo ""
+  echo "✖ Commit refusé : le message ne respecte pas la convention du projet."
+  echo ""
+  echo "  Message reçu : \"$FIRST_LINE\""
+  echo ""
+  echo "  Formats acceptés :"
+  echo "    JOB-<numéro> <description>          ex. JOB-42 ajoute le filtre par statut"
+  echo "    <type>(<portée>)?: <description>    ex. feat(api): ajoute la pagination"
+  echo "      types : feat, fix, chore, ci, docs, test, refactor"
+  echo "    Merge ...                           (messages de fusion générés par git)"
+  echo ""
+  exit 1
+fi

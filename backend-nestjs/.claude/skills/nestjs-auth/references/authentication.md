@@ -28,7 +28,10 @@ declare module '@nestjs/authentication' {
 ```typescript
 @Injectable()
 export class CredentialsService {
-  constructor(private readonly users: UsersRepository, private readonly passwordHasher: PasswordHasher) {}
+  constructor(
+    private readonly users: UsersRepository,
+    private readonly passwordHasher: PasswordHasher,
+  ) {}
 
   async register(email: string, password: string) {
     // Insert and map the unique violation to 409 (see nestjs-data); a lookup first races.
@@ -39,10 +42,16 @@ export class CredentialsService {
   async verify(email: string, password: string) {
     const found = await this.users.findCredentials(email); // { user, passwordHash } | null
     // No account: verify() checks a dummy hash, so the timing doesn't reveal which emails exist.
-    const valid = await this.passwordHasher.verify(password, found?.passwordHash);
+    const valid = await this.passwordHasher.verify(
+      password,
+      found?.passwordHash,
+    );
     if (!valid || !found) return null;
     if (this.passwordHasher.needsRehash(found.passwordHash)) {
-      await this.users.updatePasswordHash(found.user.id, await this.passwordHasher.hash(password));
+      await this.users.updatePasswordHash(
+        found.user.id,
+        await this.passwordHasher.hash(password),
+      );
     }
     return found.user;
   }
@@ -59,7 +68,10 @@ export class CredentialsService {
 ```typescript
 @Injectable()
 export class SessionAuth extends SessionCookieProvider<User> {
-  constructor(private readonly users: UsersRepository, registry: AuthenticationRegistry) {
+  constructor(
+    private readonly users: UsersRepository,
+    registry: AuthenticationRegistry,
+  ) {
     super();
     registry.registerProvider(this); // order 0
   }
@@ -71,21 +83,27 @@ export class SessionAuth extends SessionCookieProvider<User> {
 @Public()
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly credentials: CredentialsService, private readonly signInService: SignInService) {}
+  constructor(
+    private readonly credentials: CredentialsService,
+    private readonly signInService: SignInService,
+  ) {}
 
   @Post('sign-in')
   @HttpCode(200)
   async signIn(@Body({ schema: credentialsSchema }) body: Credentials) {
     const user = await this.credentials.verify(body.email, body.password);
     if (!user) throw new UnauthorizedException('Invalid email or password');
-    const { session } = await this.signInService.signIn(user.id, { method: 'password' }); // sets the cookie itself
+    const { session } = await this.signInService.signIn(user.id, {
+      method: 'password',
+    }); // sets the cookie itself
     return { mfaRequired: session.mfa === 'pending' };
   }
 
   @Post('sign-out')
   @HttpCode(204)
   async signOut() {
-    if (!(await this.signInService.signOut())) throw new UnauthorizedException(); // no session cookie
+    if (!(await this.signInService.signOut()))
+      throw new UnauthorizedException(); // no session cookie
   }
 }
 ```
@@ -101,26 +119,31 @@ Checked on 0.1.6: with a 12-byte key the app stops at startup (`the key is not a
 
 ```typescript
 // app.module.ts
-AuthenticationModule.forRoot({
+(AuthenticationModule.forRoot({
   accessToken: { key: process.env.JWT_SECRET!, ttl: '15m' }, // issuer and audience are optional, checked when set
   // refreshToken: false,  // bearer-only APIs that make clients sign in again: no refresh-token store needed
 }),
-
-@Injectable()
-export class JwtAuth extends JwtBearerProvider<User> {
-  constructor(private readonly users: UsersRepository, registry: AuthenticationRegistry) {
-    super(); // verifies with the module's accessToken options
-    registry.registerProvider(this, { order: 1 });
-  }
-  validate({ sub }: JwtClaims) {
-    return sub ? this.users.findById(sub) : null; // sub is a string: convert it for numeric ids
-  }
-}
+  @Injectable()
+  export class JwtAuth extends JwtBearerProvider<User> {
+    constructor(
+      private readonly users: UsersRepository,
+      registry: AuthenticationRegistry,
+    ) {
+      super(); // verifies with the module's accessToken options
+      registry.registerProvider(this, { order: 1 });
+    }
+    validate({ sub }: JwtClaims) {
+      return sub ? this.users.findById(sub) : null; // sub is a string: convert it for numeric ids
+    }
+  });
 
 @Public()
 @Controller('auth/token')
 export class TokensController {
-  constructor(private readonly credentials: CredentialsService, private readonly tokens: TokenService) {}
+  constructor(
+    private readonly credentials: CredentialsService,
+    private readonly tokens: TokenService,
+  ) {}
 
   @Post()
   @HttpCode(200)
@@ -157,7 +180,10 @@ export class TokensController {
 @Module({
   imports: [
     AuthenticationModule.forRoot({}), // no accessToken: this app's tokens come from @nestjs/jwt
-    JwtModule.register({ secret: process.env.JWT_SECRET!, signOptions: { expiresIn: '15m' } }), // the secret as given: no padding, no hashing
+    JwtModule.register({
+      secret: process.env.JWT_SECRET!,
+      signOptions: { expiresIn: '15m' },
+    }), // the secret as given: no padding, no hashing
     // ...
   ],
   providers: [JwtAuth],
@@ -169,11 +195,19 @@ export class AppModule {}
 // jwt-auth.provider.ts
 import { Injectable, type ExecutionContext } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthenticationError, AuthenticationProvider, AuthenticationRegistry } from '@nestjs/authentication';
+import {
+  AuthenticationError,
+  AuthenticationProvider,
+  AuthenticationRegistry,
+} from '@nestjs/authentication';
 
 @Injectable()
 export class JwtAuth extends AuthenticationProvider<User> {
-  constructor(private readonly jwt: JwtService, private readonly users: UsersRepository, registry: AuthenticationRegistry) {
+  constructor(
+    private readonly jwt: JwtService,
+    private readonly users: UsersRepository,
+    registry: AuthenticationRegistry,
+  ) {
     super();
     registry.registerProvider(this);
   }
@@ -205,7 +239,11 @@ Sign in with `PasswordHasher.verify()` as above, then `return { accessToken: awa
 ```typescript
 @Injectable()
 export class ApiKeyAuth extends ApiKeyProvider<User> {
-  constructor(private readonly keys: ApiKeysRepository, private readonly users: UsersRepository, registry: AuthenticationRegistry) {
+  constructor(
+    private readonly keys: ApiKeysRepository,
+    private readonly users: UsersRepository,
+    registry: AuthenticationRegistry,
+  ) {
     super({ prefix: 'acme' }); // keys look like acme_<id>_<secret>; the prefix lets secret scanners find leaks
     registry.registerProvider(this, { order: 2 });
   }
@@ -222,7 +260,10 @@ export class ApiKeyAuth extends ApiKeyProvider<User> {
 @Authenticate({ providers: [SessionAuth] })
 @Controller('api-keys')
 export class ApiKeysController {
-  constructor(private readonly apiKeyAuth: ApiKeyAuth, private readonly keys: ApiKeysRepository) {}
+  constructor(
+    private readonly apiKeyAuth: ApiKeyAuth,
+    private readonly keys: ApiKeysRepository,
+  ) {}
 
   @Post()
   async create(@CurrentUser('id') userId: string) {
@@ -235,7 +276,8 @@ export class ApiKeysController {
   @Delete(':id')
   @HttpCode(204)
   async revoke(@CurrentUser('id') userId: string, @Param('id') id: string) {
-    if (!(await this.keys.delete({ id, userId }))) throw new NotFoundException(); // another user's key: 404
+    if (!(await this.keys.delete({ id, userId })))
+      throw new NotFoundException(); // another user's key: 404
   }
 }
 ```
@@ -255,12 +297,12 @@ export class ApiKeysController {
 
 `@Authenticate({...})` on a class or method:
 
-| Option | Effect |
-| --- | --- |
-| `optional: true` | Anonymous callers get through with `null`; bad credentials are still a 401. |
+| Option                     | Effect                                                                                      |
+| -------------------------- | ------------------------------------------------------------------------------------------- |
+| `optional: true`           | Anonymous callers get through with `null`; bad credentials are still a 401.                 |
 | `providers: [SessionAuth]` | Only these providers may authenticate the route; other credentials count as none (checked). |
-| `mfa: true` | Requires a verified second factor (API keys never qualify). |
-| `verifiedEmail: true` | Requires `emailVerified`; 403 `email_unverified` otherwise. |
+| `mfa: true`                | Requires a verified second factor (API keys never qualify).                                 |
+| `verifiedEmail: true`      | Requires `emailVerified`; 403 `email_unverified` otherwise.                                 |
 
 ## Production
 

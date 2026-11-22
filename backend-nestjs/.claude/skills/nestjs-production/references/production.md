@@ -15,7 +15,11 @@ import { ObserveInstrument } from './observe.js';
 
 const app = await NestFactory.create<NestExpressApplication>(AppModule, {
   instrument: ObserveInstrument, // with an explicit adapter, these options are the THIRD argument
-  logger: new ConsoleLogger({ json: true, logLevels: ['log', 'warn', 'error', 'fatal'], redact: ['password', 'authorization'] }),
+  logger: new ConsoleLogger({
+    json: true,
+    logLevels: ['log', 'warn', 'error', 'fatal'],
+    redact: ['password', 'authorization'],
+  }),
 });
 app.set('trust proxy', 1);
 app.enableShutdownHooks();
@@ -50,7 +54,17 @@ ObserveModule.forRoot({
 Checked with `enabled: false`: the app starts, logs `Observe is disabled (enabled: false): nothing is recorded or sent.`, and log lines written during a request still carry a `traceId` (an incoming well-formed `X-Request-Id` is adopted as the id):
 
 ```json
-{"level":"log","message":"Listing things","context":"ThingsController","params":{"userId":1,"password":"[REDACTED]","headers":{"authorization":"[REDACTED]"}},"traceId":"abc-123"}
+{
+  "level": "log",
+  "message": "Listing things",
+  "context": "ThingsController",
+  "params": {
+    "userId": 1,
+    "password": "[REDACTED]",
+    "headers": { "authorization": "[REDACTED]" }
+  },
+  "traceId": "abc-123"
+}
 ```
 
 - Keys: `npx @nestjs/observe link` asks the user to approve a code at observe.nestjs.com/link, then writes `OBSERVE_APP_KEY`/`OBSERVE_APP_SECRET` to `.env` and adds `--env-file .env` to the `nest start` scripts. Without a terminal (or with `--no-browser`) it prints the address (`https://observe.nestjs.com/link`) and a code, and waits until the code is approved or expires (15 minutes), writing nothing before that. An agent can start it and hand the address and code to the user, but only the user can approve. A project from `nest new` with Observe and no keys starts normally and logs that it isn't connected yet. Production gets its own key, from the project's API Keys page into the platform's secrets, not a shipped `.env`.
@@ -101,7 +115,9 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 @Module({
   imports: [
     ThrottlerModule.forRoot({
-      throttlers: [{ ttl: 60_000, limit: Number(process.env.THROTTLE_LIMIT ?? 100) }],
+      throttlers: [
+        { ttl: 60_000, limit: Number(process.env.THROTTLE_LIMIT ?? 100) },
+      ],
       getTracker: (req) => (req.user ? `user:${req.user.id}` : `ip:${req.ip}`),
     }),
   ],
@@ -123,16 +139,28 @@ Checked: with a limit of 3, user A's 4th request is a 429 with `Retry-After: 60`
 ```typescript
 import { Controller, Get, Injectable } from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
-import { HealthCheck, HealthCheckService, HealthIndicatorService } from '@nestjs/terminus';
+import {
+  HealthCheck,
+  HealthCheckService,
+  HealthIndicatorService,
+} from '@nestjs/terminus';
 import { sql } from 'drizzle-orm';
 
 @Injectable()
 export class DatabaseHealthIndicator {
-  constructor(private readonly indicators: HealthIndicatorService, @InjectDrizzle() private readonly db: Database) {}
+  constructor(
+    private readonly indicators: HealthIndicatorService,
+    @InjectDrizzle() private readonly db: Database,
+  ) {}
 
   isHealthy(key: string) {
     // Return nothing from attempt(): its result is copied into the response body.
-    return this.indicators.check(key).attempt(async () => { await this.db.run(sql`select 1`); }).withTimeout('1s');
+    return this.indicators
+      .check(key)
+      .attempt(async () => {
+        await this.db.run(sql`select 1`);
+      })
+      .withTimeout('1s');
   }
 }
 
@@ -140,13 +168,20 @@ export class DatabaseHealthIndicator {
 @SkipThrottle()
 @Controller()
 export class HealthController {
-  constructor(private readonly health: HealthCheckService, private readonly database: DatabaseHealthIndicator) {}
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly database: DatabaseHealthIndicator,
+  ) {}
 
-  @Get('health') live() { return { status: 'ok' }; } // liveness: no dependencies; a restart doesn't fix a database
+  @Get('health') live() {
+    return { status: 'ok' };
+  } // liveness: no dependencies; a restart doesn't fix a database
 
   @Get('ready')
   @HealthCheck()
-  ready() { return this.health.check([() => this.database.isHealthy('database')]); } // 503 when a check fails
+  ready() {
+    return this.health.check([() => this.database.isHealthy('database')]);
+  } // 503 when a check fails
 }
 
 // health.module.ts
@@ -166,12 +201,19 @@ Checked: `/ready` answers `{"status":"ok","info":{"database":{"responseTime":1,"
 // main.ts
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-const config = new DocumentBuilder().setTitle('Orders API').setVersion('1.0').addBearerAuth().build();
+const config = new DocumentBuilder()
+  .setTitle('Orders API')
+  .setVersion('1.0')
+  .addBearerAuth()
+  .build();
 const documentFactory = () => {
   const document = SwaggerModule.createDocument(app, config);
   // setup() serves the document outside Nest's router, so it isn't listed: add its own route.
   document.paths['/docs-json'] = {
-    get: { summary: 'This OpenAPI document', responses: { '200': { description: 'The document' } } },
+    get: {
+      summary: 'This OpenAPI document',
+      responses: { '200': { description: 'The document' } },
+    },
   };
   return document;
 };

@@ -7,8 +7,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
   return from(auth.currentUser.getIdToken()).pipe(
-    switchMap((token) =>
-      next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })),
-    ),
+    switchMap((token) => next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
   );
 };

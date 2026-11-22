@@ -86,12 +86,15 @@ export class NotesController {
 ```typescript
 @Injectable()
 export class NotesService {
-  constructor(private readonly authorization: AuthorizationService, private readonly context: AuthenticationContext) {}
+  constructor(
+    private readonly authorization: AuthorizationService,
+    private readonly context: AuthenticationContext,
+  ) {}
 
   async edit(id: string, changes: UpdateNote) {
     const user = this.context.requireUser();
     const note = await this.repository.findById(id);
-    if (!note) throw new NotFoundException();                          // 404 first
+    if (!note) throw new NotFoundException(); // 404 first
     await this.authorization.authorize(NotePolicy, 'edit', user, note); // 403 (401 for a guest) when denied
     return this.repository.update(id, changes);
   }
@@ -99,7 +102,12 @@ export class NotesService {
   async list() {
     const user = this.context.requireUser();
     const notes = await this.repository.findVisibleTo(user); // filter in the query, not by checking every row
-    return Promise.all(notes.map(async (note) => ({ ...note, canEdit: await this.authorization.can(NotePolicy, 'edit', user, note) })));
+    return Promise.all(
+      notes.map(async (note) => ({
+        ...note,
+        canEdit: await this.authorization.can(NotePolicy, 'edit', user, note),
+      })),
+    );
   }
 }
 ```
@@ -111,11 +119,11 @@ export class NotesService {
 
 ## 401 or 403
 
-| Caller | Status | From |
-| --- | --- | --- |
-| No or bad credentials on a route that needs a user | 401 (`WWW-Authenticate`) | authentication, before any policy |
-| Guest on an optional route, policy denies `null` | 401 | authorization: signing in might change the answer |
-| Signed-in user, policy denies | 403 | authorization |
+| Caller                                             | Status                   | From                                              |
+| -------------------------------------------------- | ------------------------ | ------------------------------------------------- |
+| No or bad credentials on a route that needs a user | 401 (`WWW-Authenticate`) | authentication, before any policy                 |
+| Guest on an optional route, policy denies `null`   | 401                      | authorization: signing in might change the answer |
+| Signed-in user, policy denies                      | 403                      | authorization                                     |
 
 ## Errors and events
 
@@ -128,7 +136,14 @@ export class DenialLog implements OnModuleInit {
   private readonly logger = new Logger(DenialLog.name);
   constructor(private readonly events: AuthorizationEvents) {}
   onModuleInit() {
-    this.events.events$.subscribe((e) => this.logger.warn('Denied', { policy: e.policy, ability: e.ability, reason: e.reason, userId: (e.user as User | null)?.id }));
+    this.events.events$.subscribe((e) =>
+      this.logger.warn('Denied', {
+        policy: e.policy,
+        ability: e.ability,
+        reason: e.reason,
+        userId: (e.user as User | null)?.id,
+      }),
+    );
   }
 }
 ```
@@ -155,11 +170,17 @@ const moduleRef = await Test.createTestingModule({
   providers: [
     NotesService,
     NotePolicy,
-    { provide: QuotaService, useValue: { maxNotesFor: vi.fn().mockResolvedValue(0) } },
+    {
+      provide: QuotaService,
+      useValue: { maxNotesFor: vi.fn().mockResolvedValue(0) },
+    },
     { provide: AuthenticationContext, useValue: { requireUser: () => alice } },
   ],
 }).compile();
-await expect(moduleRef.get(NotesService).create('x')).rejects.toMatchObject({ reason: 'forbidden', ability: 'createMore' });
+await expect(moduleRef.get(NotesService).create('x')).rejects.toMatchObject({
+  reason: 'forbidden',
+  ability: 'createMore',
+});
 ```
 
 Checked with Vitest on the scaffold's config. End-to-end, sign in through the real route and check one allowed and one denied request per rule; `.overrideProvider(NotePolicy).useValue(...)` replaces a policy everywhere at once.

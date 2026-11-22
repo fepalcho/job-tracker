@@ -29,9 +29,13 @@ export const notes = sqliteTable(
   'notes',
   {
     id: integer().primaryKey({ autoIncrement: true }),
-    userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
     title: text().notNull(),
-    createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().default(sql`(unixepoch() * 1000)`),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .default(sql`(unixepoch() * 1000)`),
   },
   (t) => [index('notes_user_id_idx').on(t.userId, t.id)], // serves "this user's notes, by id"
 );
@@ -97,7 +101,11 @@ After every schema change: `npx drizzle-kit generate --name=<what changed>`, and
 ### A repository: owner-scoped queries, cursor paging, 409s
 
 ```typescript
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDrizzle } from '@nestjs/drizzle';
 import { and, asc, eq, gt } from 'drizzle-orm';
 import type { Database } from '../db/database.js';
@@ -112,7 +120,8 @@ export class NotesRepository {
       const [user] = await this.db.insert(users).values({ email }).returning();
       return user;
     } catch (error) {
-      if (isUniqueViolation(error)) throw new ConflictException('Email already registered');
+      if (isUniqueViolation(error))
+        throw new ConflictException('Email already registered');
       throw error;
     }
   }
@@ -122,11 +131,16 @@ export class NotesRepository {
     const rows = await this.db
       .select()
       .from(notes)
-      .where(and(eq(notes.userId, userId), after ? gt(notes.id, after) : undefined))
+      .where(
+        and(eq(notes.userId, userId), after ? gt(notes.id, after) : undefined),
+      )
       .orderBy(asc(notes.id))
       .limit(limit + 1);
     const items = rows.slice(0, limit);
-    return { items, nextCursor: rows.length > limit ? items[items.length - 1].id : null };
+    return {
+      items,
+      nextCursor: rows.length > limit ? items[items.length - 1].id : null,
+    };
   }
 
   async update(userId: number, id: number, changes: { title?: string }) {
@@ -140,14 +154,27 @@ export class NotesRepository {
   }
 
   userWithNotes(id: number) {
-    return this.db.query.users.findFirst({ where: { id }, with: { notes: true } }); // one query, nested result
+    return this.db.query.users.findFirst({
+      where: { id },
+      with: { notes: true },
+    }); // one query, nested result
   }
 }
 
 /** Drizzle wraps the driver's error: walk the causes. */
 export function isUniqueViolation(error: unknown): boolean {
-  for (let e = error as { code?: string; rawCode?: number; cause?: unknown } | undefined; e; e = e.cause as typeof e) {
-    if (e.code === 'SQLITE_CONSTRAINT_UNIQUE' || e.rawCode === 2067 || e.code === '23505') return true;
+  for (
+    let e = error as
+      { code?: string; rawCode?: number; cause?: unknown } | undefined;
+    e;
+    e = e.cause as typeof e
+  ) {
+    if (
+      e.code === 'SQLITE_CONSTRAINT_UNIQUE' ||
+      e.rawCode === 2067 ||
+      e.code === '23505'
+    )
+      return true;
   }
   return false;
 }
@@ -160,7 +187,10 @@ export function isUniqueViolation(error: unknown): boolean {
 
 ```typescript
 await this.db.transaction(async (tx) => {
-  await tx.update(notes).set({ userId: toUser }).where(eq(notes.userId, fromUser));
+  await tx
+    .update(notes)
+    .set({ userId: toUser })
+    .where(eq(notes.userId, fromUser));
   await tx.delete(users).where(eq(users.id, fromUser));
 }); // a throw (or tx.rollback()) rolls back; otherwise it commits and resolves with the callback's value
 ```

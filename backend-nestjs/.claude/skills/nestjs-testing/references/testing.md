@@ -17,7 +17,10 @@ describe('NotesService', () => {
   beforeEach(async () => {
     vi.resetAllMocks();
     const moduleRef = await Test.createTestingModule({
-      providers: [NotesService, { provide: NotesRepository, useValue: repository }],
+      providers: [
+        NotesService,
+        { provide: NotesRepository, useValue: repository },
+      ],
     }).compile();
     service = moduleRef.get(NotesService);
   });
@@ -49,11 +52,17 @@ const moduleRef = await Test.createTestingModule({
   providers: [
     NotesService,
     NotePolicy,
-    { provide: QuotaService, useValue: { maxNotesFor: vi.fn().mockResolvedValue(0) } },
+    {
+      provide: QuotaService,
+      useValue: { maxNotesFor: vi.fn().mockResolvedValue(0) },
+    },
     { provide: AuthenticationContext, useValue: { requireUser: () => alice } },
   ],
 }).compile();
-await expect(moduleRef.get(NotesService).create('x')).rejects.toMatchObject({ reason: 'forbidden', ability: 'createMore' });
+await expect(moduleRef.get(NotesService).create('x')).rejects.toMatchObject({
+  reason: 'forbidden',
+  ability: 'createMore',
+});
 ```
 
 ## End to end
@@ -65,7 +74,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { AuthenticationContext, PasswordHasher, TokenService } from '@nestjs/authentication';
+import {
+  AuthenticationContext,
+  PasswordHasher,
+  TokenService,
+} from '@nestjs/authentication';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import request from 'supertest';
 import { configureApp } from '../src/app.setup.js';
@@ -100,18 +113,35 @@ describe('Notes (e2e)', () => {
   };
 
   it('signs in through the real route', async () => {
-    await request(app.getHttpServer()).post('/auth/sign-up').send({ email: 'a@test.io', password: 'correct horse battery' }).expect(201);
-    const { body } = await request(app.getHttpServer()).post('/auth/token').send({ email: 'a@test.io', password: 'correct horse battery' }).expect(200);
-    await request(app.getHttpServer()).get('/me').set('authorization', `Bearer ${body.accessToken}`).expect(200);
+    await request(app.getHttpServer())
+      .post('/auth/sign-up')
+      .send({ email: 'a@test.io', password: 'correct horse battery' })
+      .expect(201);
+    const { body } = await request(app.getHttpServer())
+      .post('/auth/token')
+      .send({ email: 'a@test.io', password: 'correct horse battery' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/me')
+      .set('authorization', `Bearer ${body.accessToken}`)
+      .expect(200);
   });
 
   it('rejects a note without a title', async () => {
-    await request(app.getHttpServer()).post('/notes').set('authorization', await tokenFor('b@test.io')).send({}).expect(400);
+    await request(app.getHttpServer())
+      .post('/notes')
+      .set('authorization', await tokenFor('b@test.io'))
+      .send({})
+      .expect(400);
   });
 
   it('runs service code as a user, without HTTP', async () => {
-    const user = await app.get(UsersRepository).create('c@test.io', 'unused-hash');
-    const note = await app.get(AuthenticationContext).run({ user }, () => app.get(NotesService).create('from a test'));
+    const user = await app
+      .get(UsersRepository)
+      .create('c@test.io', 'unused-hash');
+    const note = await app
+      .get(AuthenticationContext)
+      .run({ user }, () => app.get(NotesService).create('from a test'));
     expect(note.ownerId).toBe(user.id);
   });
 });

@@ -43,11 +43,13 @@ Then add `NotesModule` to `AppModule`'s `imports`. `exports` only what other mod
 `npx nest g module|controller|service notes --no-spec` does the same registration if you'd rather generate; `nest g resource` adds CRUD stubs and an entity class you'll mostly delete, so it's worth it only for a plain CRUD (pass `--type rest --crud`, or it prompts).
 
 **When it doesn't start:**
+
 - `Nest can't resolve dependencies of the NotesService (?)`, with `?` at index N: the Nth constructor parameter isn't provided in this module's scope. Add the provider to `providers`, or `exports` it from its module and import that module. The parameter shows as `Function` or `Object` when it was imported with `import type` (decorator metadata erased): use a value import for every injected class.
 - Two modules importing each other: break the cycle (move the shared provider to a third module); `forwardRef(() => OtherModule)` is the last resort.
 - A provider injected by an interface or a config value needs a token: `{ provide: NOTES_REPO, useClass: SqlNotesRepository }` and `@Inject(NOTES_REPO)`.
 
 **Modules and providers that start but misbehave** (details: [references/modules.md](references/modules.md)):
+
 - A class listed in the `providers` of two modules is two instances with separate state. List it once, `export` it, import that module.
 - Call a module's `forRoot()` once, in the root module; feature modules import `forFeature()` or the module itself.
 - `Scope.REQUEST` spreads: everything that injects a request-scoped provider becomes request-scoped too (a new instance per request), lifecycle hooks (`onModuleInit`, ...) never run on them, and a `@Cron()` in such a class is never scheduled. (In a WebSocket gateway the scope is the connection, since Nest 12.) For per-request data, read it from the request or a context service (`AuthenticationContext`, `AsyncLocalStorage`) instead.

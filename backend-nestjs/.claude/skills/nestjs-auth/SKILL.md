@@ -34,12 +34,12 @@ npm i @nestjs/authentication @nestjs/authorization
 
 ## Pick the setup
 
-| The app needs | Use |
-| --- | --- |
-| Bearer JWTs it issues itself, secret up to you | `accessToken` options + `JwtBearerProvider` + `TokenService.issue()` |
-| A secret or token format fixed by the task | `@nestjs/jwt` + your own `AuthenticationProvider` |
-| Browser sessions | `SessionCookieProvider` + `SignInService.signIn()` |
-| Keys for scripts and partners | `ApiKeyProvider` (keys `prefix_<id>_<secret>`, stored as SHA-256) or your own provider for another header; manage keys only from a session (`@Authenticate({ providers: [SessionAuth] })`), so a leaked key can't mint more |
-| Roles or ownership checks | `@nestjs/authorization` policies |
+| The app needs                                  | Use                                                                                                                                                                                                                         |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bearer JWTs it issues itself, secret up to you | `accessToken` options + `JwtBearerProvider` + `TokenService.issue()`                                                                                                                                                        |
+| A secret or token format fixed by the task     | `@nestjs/jwt` + your own `AuthenticationProvider`                                                                                                                                                                           |
+| Browser sessions                               | `SessionCookieProvider` + `SignInService.signIn()`                                                                                                                                                                          |
+| Keys for scripts and partners                  | `ApiKeyProvider` (keys `prefix_<id>_<secret>`, stored as SHA-256) or your own provider for another header; manage keys only from a session (`@Authenticate({ providers: [SessionAuth] })`), so a leaked key can't mint more |
+| Roles or ownership checks                      | `@nestjs/authorization` policies                                                                                                                                                                                            |
 
 Code for each row, checked against `@nestjs/authentication` 0.1.6 and `@nestjs/authorization` 0.1.4: [references/authentication.md](references/authentication.md), [references/authorization.md](references/authorization.md).

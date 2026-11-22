@@ -12,12 +12,12 @@ Docs: https://docs.nestjs.com/fundamentals/testing.md. Recipes, each run with Vi
 
 ## Pick the level
 
-| What | How | Speed |
-| --- | --- | --- |
-| A policy, a pure function, a mapper | `new NotePolicy(fakeQuotas)`: no Nest at all | ms |
-| A service's rules | `Test.createTestingModule({ providers: [NotesService, { provide: NotesRepository, useValue: { findById: vi.fn() } }] })` | ms |
-| A service with the real policies | the above plus `imports: [AuthorizationModule.forRoot()]` and a stub `AuthenticationContext` | ms |
-| A route as clients see it | `imports: [AppModule]`, Supertest on `app.getHttpServer()`, a fresh database | 100s of ms |
+| What                                | How                                                                                                                      | Speed      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| A policy, a pure function, a mapper | `new NotePolicy(fakeQuotas)`: no Nest at all                                                                             | ms         |
+| A service's rules                   | `Test.createTestingModule({ providers: [NotesService, { provide: NotesRepository, useValue: { findById: vi.fn() } }] })` | ms         |
+| A service with the real policies    | the above plus `imports: [AuthorizationModule.forRoot()]` and a stub `AuthenticationContext`                             | ms         |
+| A route as clients see it           | `imports: [AppModule]`, Supertest on `app.getHttpServer()`, a fresh database                                             | 100s of ms |
 
 ## Runner
 

@@ -21,7 +21,9 @@ app.useGlobalPipes(new StandardSchemaValidationPipe());
 // notes.schemas.ts
 import { z } from 'zod';
 
-export const createNoteSchema = z.object({ title: z.string().trim().min(1).max(200) });
+export const createNoteSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+});
 export type CreateNote = z.infer<typeof createNoteSchema>;
 
 // Any subset; a field that's present must be valid, and null is rejected.
@@ -38,7 +40,15 @@ export const listQuerySchema = z.object({
 
 ```typescript
 // notes.controller.ts
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { z } from 'zod';
 
 const id = z.coerce.number().int().positive();
@@ -53,12 +63,17 @@ export class NotesController {
   }
 
   @Get()
-  list(@Query({ schema: listQuerySchema }) query: z.infer<typeof listQuerySchema>) {
+  list(
+    @Query({ schema: listQuerySchema }) query: z.infer<typeof listQuerySchema>,
+  ) {
     return this.notes.list(query);
   }
 
   @Patch(':id')
-  update(@Param('id', { schema: id }) noteId: number, @Body({ schema: updateNoteSchema }) body: UpdateNote) {
+  update(
+    @Param('id', { schema: id }) noteId: number,
+    @Body({ schema: updateNoteSchema }) body: UpdateNote,
+  ) {
     return this.notes.update(noteId, body);
   }
 }
@@ -105,7 +120,9 @@ export class UpdateNoteDto {
 
 // Or derive it: PartialType() applies @IsOptional() to every field (null gets through)
 // unless you pass skipNullProperties: false, which applies the ValidateIf above instead.
-export class UpdateNoteDto2 extends PartialType(CreateNoteDto, { skipNullProperties: false }) {}
+export class UpdateNoteDto2 extends PartialType(CreateNoteDto, {
+  skipNullProperties: false,
+}) {}
 ```
 
 Checked on Nest 12.5 with class-validator 0.15: with `@IsOptional() @IsString()`, `{"title": null}` passes (200); with `@ValidateIf((_, v) => v !== undefined) @IsString()`, it's a 400, and `{}` still passes.

@@ -24,9 +24,10 @@ export class LoginPage {
     try {
       await this.auth.login();
       await this.router.navigate(['/applications']);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error(e);
-      this.error.set('Connexion impossible : ' + (e?.code ?? e?.message ?? e));
+      const err = e as { code?: string; message?: string } | null | undefined;
+      this.error.set('Connexion impossible : ' + (err?.code ?? err?.message ?? e));
     }
   }
 }

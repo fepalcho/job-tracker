@@ -37,7 +37,13 @@ import { Application, ApplicationsApi, STATUS_LABELS } from './applications.api'
 
     <table>
       <thead>
-        <tr><th>Entreprise</th><th>Poste</th><th>Statut</th><th>Envoyée le</th><th></th></tr>
+        <tr>
+          <th>Entreprise</th>
+          <th>Poste</th>
+          <th>Statut</th>
+          <th>Envoyée le</th>
+          <th></th>
+        </tr>
       </thead>
       <tbody>
         @for (a of items(); track a._id) {
@@ -52,7 +58,9 @@ import { Application, ApplicationsApi, STATUS_LABELS } from './applications.api'
             </td>
           </tr>
         } @empty {
-          <tr><td colspan="5">Aucune candidature pour l'instant.</td></tr>
+          <tr>
+            <td colspan="5">Aucune candidature pour l'instant.</td>
+          </tr>
         }
       </tbody>
     </table>
