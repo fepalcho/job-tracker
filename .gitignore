@@ -38,3 +38,6 @@ Thumbs.db
 
 # Claude Code (réglages locaux)
 .claude/settings.local.json
+
+# Cache de compilation TypeScript
+*.tsbuildinfo
