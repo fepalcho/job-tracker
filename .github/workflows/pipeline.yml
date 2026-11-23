@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: ['**']
+    branches: ["**"]
   pull_request:
     branches: [dev, master]
 
@@ -23,12 +23,20 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: API - installation et compilation
+      - name: Formatage - vérification Prettier
+        run: npm ci && npx prettier --check .
+      - name: API - installation et lint
         working-directory: backend-nestjs
-        run: npm ci && npm run build
-      - name: Front - installation et compilation
+        run: npm ci && npm run lint
+      - name: Front - installation et lint
         working-directory: frontend
-        run: npm ci && npx ng build
+        run: npm ci && npx ng lint
+      - name: API - compilation
+        working-directory: backend-nestjs
+        run: npm run build
+      - name: Front - compilation
+        working-directory: frontend
+        run: npx ng build
 
   e2e:
     name: e2e
