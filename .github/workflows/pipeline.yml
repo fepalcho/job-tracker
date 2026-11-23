@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Droits minimaux par défaut ; le job deploy déclare les siens.
+permissions:
+  contents: read
+
 env:
   PROJECT_ID: taxi-demo-497a3
   REGION: europe-west1
