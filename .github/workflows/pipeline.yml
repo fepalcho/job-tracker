@@ -31,6 +31,9 @@ jobs:
       - name: Front - installation et lint
         working-directory: frontend
         run: npm ci && npx ng lint
+      - name: API - tests unitaires
+        working-directory: backend-nestjs
+        run: npm run test:cov
       - name: API - compilation
         working-directory: backend-nestjs
         run: npm run build
