@@ -53,6 +53,17 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "e2e": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/app/emulator.ts",
+                  "with": "src/app/emulator.e2e.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
@@ -68,6 +79,9 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "e2e": {
+              "buildTarget": "frontend:build:e2e"
             }
           },
           "defaultConfiguration": "development"
