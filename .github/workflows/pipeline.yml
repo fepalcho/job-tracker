@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Droits minimaux par défaut ; le job deploy déclare les siens.
+permissions:
+  contents: read
+
 env:
   PROJECT_ID: taxi-demo-497a3
   REGION: europe-west1
@@ -40,6 +44,21 @@ jobs:
       - name: Front - compilation
         working-directory: frontend
         run: npx ng build
+
+  jira:
+    name: jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Critères Jira = scénarios Cypress
+        env:
+          JIRA_BASE_URL: https://jeremydufour1907.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: node scripts/check-jira.mjs
 
   e2e:
     name: e2e
