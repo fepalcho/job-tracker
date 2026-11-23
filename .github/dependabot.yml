@@ -16,6 +16,11 @@ updates:
       prefix: chore
       include: scope
     groups:
+      # vitest et ses modules (@vitest/coverage-v8…) doivent rester à la même version.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
       mineures-et-correctifs:
         update-types:
           - minor
