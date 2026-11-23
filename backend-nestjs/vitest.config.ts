@@ -8,5 +8,15 @@ export default defineConfig({
     globals: true,
     root: './',
     include: ['**/*.spec.ts'],
+    coverage: {
+      include: ['src/applications/**/*.ts', 'src/auth/**/*.ts'],
+      exclude: ['**/*.spec.ts', '**/*.module.ts'],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 70,
+        statements: 70,
+      },
+    },
   },
 });
