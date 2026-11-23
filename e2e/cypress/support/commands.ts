@@ -1,37 +1,43 @@
 /// <reference types="cypress" />
-// ***********************************************
-// This example commands.ts shows you how to
-// create various custom commands and overwrite
-// existing commands.
-//
-// For more comprehensive examples of custom
-// commands please read more here:
-// https://on.cypress.io/custom-commands
-// ***********************************************
-//
-//
-// -- This is a parent command --
-// Cypress.Commands.add('login', (email, password) => { ... })
-//
-//
-// -- This is a child command --
-// Cypress.Commands.add('drag', { prevSubject: 'element'}, (subject, options) => { ... })
-//
-//
-// -- This is a dual command --
-// Cypress.Commands.add('dismiss', { prevSubject: 'optional'}, (subject, options) => { ... })
-//
-//
-// -- This will overwrite an existing command --
-// Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
-//
-// declare global {
-//   namespace Cypress {
-//     interface Chainable {
-//       login(email: string, password: string): Chainable<void>
-//       drag(subject: string, options?: Partial<TypeOptions>): Chainable<Element>
-//       dismiss(subject: string, options?: Partial<TypeOptions>): Chainable<Element>
-//       visit(originalFn: CommandOriginalFn, url: string, options: Partial<VisitOptions>): Chainable<Element>
-//     }
-//   }
-// }
+
+/** Faux comptes Google créés dans l'émulateur Firebase Auth. */
+export const USERS = {
+  alice: { sub: "alice", email: "alice@example.com", name: "Alice" },
+  bob: { sub: "bob", email: "bob@example.com", name: "Bob" },
+} as const;
+
+export type UserName = keyof typeof USERS;
+
+declare global {
+  interface Window {
+    e2eSignIn?: (user: {
+      sub: string;
+      email: string;
+      name: string;
+    }) => Promise<string>;
+  }
+  namespace Cypress {
+    interface Chainable {
+      /**
+       * Crée (au premier appel) et connecte un faux compte Google via
+       * l'émulateur, sans popup. Renvoie l'ID token, aussi disponible via
+       * les alias `@token` (utilisateur courant) et `@token_<nom>`.
+       */
+      loginAs(name: UserName): Chainable<string>;
+    }
+  }
+}
+
+Cypress.Commands.add("loginAs", (name: UserName) => {
+  cy.visit("/login");
+  // e2eSignIn n'existe que si le front tourne avec --configuration e2e.
+  cy.window().its("e2eSignIn").should("be.a", "function");
+  return cy
+    .window()
+    .then((win) => win.e2eSignIn!(USERS[name]))
+    .then((token) => {
+      cy.wrap(token).as("token");
+      cy.wrap(token).as(`token_${name}`);
+      return cy.wrap(token);
+    });
+});
