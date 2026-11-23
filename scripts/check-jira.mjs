@@ -15,7 +15,12 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const FEATURES_DIR = process.argv[2] ?? "e2e/cypress/e2e";
-const { JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN } = process.env;
+// Un secret collé peut contenir un espace ou un retour à la ligne final.
+const [JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN] = [
+  "JIRA_BASE_URL",
+  "JIRA_EMAIL",
+  "JIRA_API_TOKEN",
+].map((nom) => process.env[nom]?.trim());
 
 const SCENARIO =
   /^(Scénario|Scenario|Plan du scénario|Plan du Scénario):\s*(.+)$/;
@@ -104,14 +109,32 @@ export function comparer(cle, feature, jira) {
   return { erreurs, avertissements };
 }
 
-async function lireStory(cle) {
+function appelJira(chemin) {
   const auth = Buffer.from(`${JIRA_EMAIL}:${JIRA_API_TOKEN}`).toString(
     "base64",
   );
-  const url = `${JIRA_BASE_URL.replace(/\/$/, "")}/rest/api/3/issue/${cle}?fields=description`;
-  const reponse = await fetch(url, {
+  return fetch(`${JIRA_BASE_URL.replace(/\/$/, "")}/rest/api/3/${chemin}`, {
     headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
   });
+}
+
+/** Vérifie l'identité avant tout : un 404 sur un ticket cache souvent un problème d'accès. */
+async function verifierIdentite() {
+  const reponse = await appelJira("myself");
+  const corps = reponse.ok ? await reponse.json() : null;
+  if (!corps?.accountId) {
+    console.log(
+      `::error::Jira ne reconnaît pas l'utilisateur (réponse ${reponse.status}). ` +
+        "Vérifiez que JIRA_EMAIL est l'e-mail du compte Atlassian et que JIRA_API_TOKEN " +
+        "est un jeton classique (« Créer un jeton d'API », sans périmètres).",
+    );
+    process.exit(1);
+  }
+  console.log(`Connecté à Jira en tant que ${corps.displayName}.`);
+}
+
+async function lireStory(cle) {
+  const reponse = await appelJira(`issue/${cle}?fields=description`);
   if (!reponse.ok)
     throw new Error(`${cle} : Jira a répondu ${reponse.status}.`);
   const issue = await reponse.json();
@@ -125,6 +148,7 @@ async function main() {
     );
     return;
   }
+  await verifierIdentite();
   const fichiers = (await readdir(FEATURES_DIR))
     .filter((f) => f.endsWith(".feature"))
     .sort();
