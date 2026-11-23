@@ -2,7 +2,7 @@ name: CI/CD
 
 on:
   push:
-    branches: ["**"]
+    branches: [dev, master]
   pull_request:
     branches: [dev, master]
 
@@ -52,14 +52,20 @@ jobs:
           - 27017:27017
     env:
       MONGODB_URI: mongodb://localhost:27017/jobtracker
-      FIREBASE_PROJECT_ID: taxi-demo-497a3
+      # Projet de démo de l'émulateur : ses jetons ont aud = demo-e2e.
+      FIREBASE_PROJECT_ID: demo-e2e
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Demarrer l'emulateur Firebase Auth
+        working-directory: frontend
+        run: nohup npx -y firebase-tools emulators:start --only auth --project demo-e2e > ../emulator.log 2>&1 &
       - name: Demarrer l'API
         working-directory: backend-nestjs
+        env:
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
         run: |
           npm ci && npm run build
           nohup node dist/main.js > ../api.log 2>&1 &
@@ -67,15 +73,15 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          nohup npx ng serve --proxy-config src/proxy.conf.json > ../front.log 2>&1 &
+          nohup npx ng serve --configuration e2e --proxy-config src/proxy.conf.json > ../front.log 2>&1 &
       - name: Attendre que tout reponde
-        run: npx -y wait-on http://localhost:3000/api/health http://localhost:4200 --timeout 180000
+        run: npx -y wait-on http://localhost:3000/api/health http://localhost:4200 tcp:127.0.0.1:9099 --timeout 180000
       - name: Tests Cypress (Gherkin)
         working-directory: e2e
         run: npm ci && npx cypress run
       - name: Journaux en cas d'echec
         if: failure()
-        run: cat api.log front.log
+        run: cat api.log front.log emulator.log
       - name: Captures en cas d'echec
         if: failure()
         uses: actions/upload-artifact@v4
