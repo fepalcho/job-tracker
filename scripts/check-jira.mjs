@@ -120,10 +120,6 @@ function appelJira(chemin) {
 
 /** Vérifie l'identité avant tout : un 404 sur un ticket cache souvent un problème d'accès. */
 async function verifierIdentite() {
-  const masque = JIRA_EMAIL.replace(/^(.).*(@.*)$/, "$1***$2");
-  console.log(
-    `Jira : ${JIRA_BASE_URL}, e-mail ${masque}, jeton de ${JIRA_API_TOKEN.length} caractères.`,
-  );
   const reponse = await appelJira("myself");
   const corps = reponse.ok ? await reponse.json() : null;
   if (!corps?.accountId) {
