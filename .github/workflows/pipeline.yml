@@ -45,6 +45,31 @@ jobs:
         working-directory: frontend
         run: npx ng build
 
+  sonar:
+    name: sonar
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Historique complet : Sonar distingue le nouveau code de l'ancien.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: API - tests unitaires avec couverture
+        working-directory: backend-nestjs
+        run: |
+          npm ci --ignore-scripts && npm run test:cov
+          # Chemins relatifs à la racine du dépôt, comme le reste de l'analyse.
+          sed -i 's#^SF:#SF:backend-nestjs/#' coverage/lcov.info
+      - name: Analyse SonarQube Cloud
+        # Sans jeton (PR Dependabot, fork), l'analyse est sautée au lieu d'échouer.
+        if: env.SONAR_TOKEN != ''
+        # Épinglée par empreinte de commit : le job manipule SONAR_TOKEN.
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
+
   jira:
     name: jira
     runs-on: ubuntu-latest
