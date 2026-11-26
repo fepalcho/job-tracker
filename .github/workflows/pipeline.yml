@@ -1,0 +1,174 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [dev, master]
+  pull_request:
+    branches: [dev, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Droits minimaux par défaut ; le job deploy déclare les siens.
+permissions:
+  contents: read
+
+env:
+  PROJECT_ID: taxi-demo-497a3
+  REGION: europe-west1
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Formatage - vérification Prettier
+        run: npm ci && npx prettier --check .
+      - name: API - installation et lint
+        working-directory: backend-nestjs
+        run: npm ci && npm run lint
+      - name: Front - installation et lint
+        working-directory: frontend
+        run: npm ci && npx ng lint
+      - name: API - tests unitaires
+        working-directory: backend-nestjs
+        run: npm run test:cov
+      - name: Front - tests unitaires
+        working-directory: frontend
+        run: npm test -- --watch=false
+      - name: API - compilation
+        working-directory: backend-nestjs
+        run: npm run build
+      - name: Front - compilation
+        working-directory: frontend
+        run: npx ng build
+
+  sonar:
+    name: sonar
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Historique complet : Sonar distingue le nouveau code de l'ancien.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: API - tests unitaires avec couverture
+        working-directory: backend-nestjs
+        run: |
+          npm ci --ignore-scripts && npm run test:cov
+          # Chemins relatifs à la racine du dépôt, comme le reste de l'analyse.
+          sed -i 's#^SF:#SF:backend-nestjs/#' coverage/lcov.info
+      - name: Analyse SonarQube Cloud
+        # Sans jeton (PR Dependabot, fork), l'analyse est sautée au lieu d'échouer.
+        if: env.SONAR_TOKEN != ''
+        # Épinglée par empreinte de commit : le job manipule SONAR_TOKEN.
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
+
+  jira:
+    name: jira
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Critères Jira = scénarios Cypress
+        env:
+          JIRA_BASE_URL: https://jeremydufour1907.atlassian.net
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+        run: node scripts/check-jira.mjs
+
+  e2e:
+    name: e2e
+    needs: build
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+    env:
+      MONGODB_URI: mongodb://localhost:27017/jobtracker
+      # Projet de démo de l'émulateur : ses jetons ont aud = demo-e2e.
+      FIREBASE_PROJECT_ID: demo-e2e
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Demarrer l'emulateur Firebase Auth
+        working-directory: frontend
+        run: nohup npx -y firebase-tools emulators:start --only auth --project demo-e2e > ../emulator.log 2>&1 &
+      - name: Demarrer l'API
+        working-directory: backend-nestjs
+        env:
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+        run: |
+          npm ci && npm run build
+          nohup node dist/main.js > ../api.log 2>&1 &
+      - name: Demarrer le front
+        working-directory: frontend
+        run: |
+          npm ci
+          nohup npx ng serve --configuration e2e --proxy-config src/proxy.conf.json > ../front.log 2>&1 &
+      - name: Attendre que tout reponde
+        run: npx -y wait-on http://localhost:3000/api/health http://localhost:4200 tcp:127.0.0.1:9099 --timeout 180000
+      - name: Tests Cypress (Gherkin)
+        working-directory: e2e
+        run: npm ci && npx cypress run
+      - name: Journaux en cas d'echec
+        if: failure()
+        run: cat api.log front.log emulator.log
+      - name: Captures en cas d'echec
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cypress-captures
+          path: e2e/cypress/screenshots
+          if-no-files-found: ignore
+
+  deploy:
+    name: deploy
+    needs: e2e
+    if: github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'master')
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'master' && 'production' || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      SUFFIX: ${{ github.ref_name == 'master' && '' || '-dev' }}
+      TARGET: ${{ github.ref_name == 'master' && 'prod' || 'dev' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: projects/99390352547/locations/global/workloadIdentityPools/github/providers/github
+          service_account: github-deployer@taxi-demo-497a3.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Deployer l'API sur Cloud Run
+        working-directory: backend-nestjs
+        run: >
+          gcloud run deploy "api-nestjs${SUFFIX}"
+          --source . --region "$REGION" --project "$PROJECT_ID"
+          --allow-unauthenticated --max-instances 2 --memory 512Mi --quiet
+          --set-env-vars "FIREBASE_PROJECT_ID=$PROJECT_ID"
+          --set-secrets "MONGODB_URI=mongodb-uri${SUFFIX}:latest"
+      - name: Deployer le front sur Firebase Hosting
+        working-directory: frontend
+        run: |
+          npm ci && npx ng build
+          npx -y firebase-tools@latest deploy --only "hosting:$TARGET" --project "$PROJECT_ID" --non-interactive

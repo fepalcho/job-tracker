@@ -2,10 +2,16 @@
   "name": "job-tracker",
   "private": true,
   "scripts": {
-    "dev": "concurrently -k -n back,front -c blue,magenta \"npm run start:dev --prefix backend-nestjs\" \"npm start --prefix frontend\"",
-    "install:all": "npm install && npm install --prefix backend-nestjs && npm install --prefix frontend"
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "lint-staged": {
+    "*.{ts,html,scss,json,md}": "prettier --write"
   },
   "devDependencies": {
-    "concurrently": "^10.0.7"
+    "husky": "^9.1.7",
+    "lint-staged": "^17.6.2",
+    "prettier": "^3.10.1"
   }
 }

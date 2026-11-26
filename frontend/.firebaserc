@@ -1,5 +1,18 @@
 {
   "projects": {
     "default": "taxi-demo-497a3"
-  }
+  },
+  "targets": {
+    "taxi-demo-497a3": {
+      "hosting": {
+        "prod": [
+          "job-tracker-jeremy"
+        ],
+        "dev": [
+          "job-tracker-jeremy-dev"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

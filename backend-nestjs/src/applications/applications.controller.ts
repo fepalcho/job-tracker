@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { FirebaseAuthGuard } from '../auth/firebase-auth.guard.js';
 import { CurrentUser, type AuthUser } from '../auth/current-user.decorator.js';
 import { ApplicationsService } from './applications.service.js';
@@ -25,7 +35,11 @@ export class ApplicationsController {
   }
 
   @Put(':id')
-  update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ApplicationDto) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ApplicationDto,
+  ) {
     return this.service.update(user.uid, id, dto);
   }
 

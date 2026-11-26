@@ -1,4 +1,12 @@
-import { IsDateString, IsIn, IsOptional, IsString, IsUrl, Length, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUrl,
+  Length,
+  MaxLength,
+} from 'class-validator';
 import { STATUSES, type Status } from './application.schema.js';
 
 export class ApplicationDto {
