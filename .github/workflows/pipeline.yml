@@ -40,7 +40,7 @@ jobs:
         run: npm run test:cov
       - name: Front - tests unitaires
         working-directory: frontend
-        run: npx ng test --watch=false
+        run: npm test -- --watch=false
       - name: API - compilation
         working-directory: backend-nestjs
         run: npm run build
