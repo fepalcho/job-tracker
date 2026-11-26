@@ -48,7 +48,7 @@ describe('ApplicationsPage', () => {
 
   const rows = (el: HTMLElement) => Array.from(el.querySelectorAll('tbody tr'));
   const cells = (row: Element) =>
-    Array.from(row.querySelectorAll('td')).map((td) => td.textContent);
+    Array.from(row.querySelectorAll('td')).map((td) => td.textContent?.trim());
   const button = (el: Element, label: string) =>
     Array.from(el.querySelectorAll('button')).find(
       (b) => b.textContent?.includes(label) || b.getAttribute('aria-label')?.includes(label),
@@ -78,6 +78,8 @@ describe('ApplicationsPage', () => {
       'Envoyée',
       '20/11/2026',
     ]);
+    // Texte exact, sans espace ni icône : l'e2e vérifie la cellule avec have.text.
+    expect(row.querySelectorAll('td')[2].textContent).toBe('Envoyée');
   });
 
   it('propose tous les statuts, « À contacter » par défaut', async () => {

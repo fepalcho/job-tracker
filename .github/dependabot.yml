@@ -21,6 +21,10 @@ updates:
         patterns:
           - "vitest"
           - "@vitest/*"
+      # Angular, Material et le CDK doivent rester à la même version majeure.
+      angular:
+        patterns:
+          - "@angular/*"
       mineures-et-correctifs:
         update-types:
           - minor
