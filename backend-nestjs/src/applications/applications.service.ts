@@ -8,6 +8,33 @@ import { isValidObjectId, Model } from 'mongoose';
 import { Application } from './application.schema.js';
 import { ApplicationDto } from './application.dto.js';
 
+const UPDATABLE_FIELDS = [
+  'company',
+  'position',
+  'offerUrl',
+  'status',
+  'appliedAt',
+  'notes',
+] as const;
+
+/**
+ * Construit la mise à jour champ par champ : le corps de la requête ne peut
+ * ni injecter d'opérateur MongoDB ($…), ni modifier ownerUid ou _id, même si
+ * la validation globale (ValidationPipe whitelist) venait à changer.
+ */
+function toUpdate(dto: ApplicationDto) {
+  const set: Record<string, string | null> = {};
+  for (const field of UPDATABLE_FIELDS) {
+    const value: unknown = dto[field];
+    if (value === undefined) continue;
+    if (value !== null && typeof value !== 'string') {
+      throw new BadRequestException(`Le champ ${field} est invalide`);
+    }
+    set[field] = value;
+  }
+  return { $set: set };
+}
+
 @Injectable()
 export class ApplicationsService {
   constructor(
@@ -34,7 +61,7 @@ export class ApplicationsService {
     this.checkId(id);
     this.checkRules(dto);
     const doc = await this.model
-      .findOneAndUpdate({ _id: id, ownerUid }, dto, {
+      .findOneAndUpdate({ _id: id, ownerUid }, toUpdate(dto), {
         returnDocument: 'after',
         runValidators: true,
       })
