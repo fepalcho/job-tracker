@@ -126,9 +126,36 @@ describe('ApplicationsService', () => {
       await expect(service.update(UID, ID, dto)).resolves.toBe(updated);
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         { _id: ID, ownerUid: UID },
-        dto,
+        { $set: dto },
         { returnDocument: 'after', runValidators: true },
       );
+    });
+
+    it('ne transmet que les champs modifiables (ni ownerUid, ni _id, ni opérateur $)', async () => {
+      model.lean.mockResolvedValue({ _id: ID });
+      const body = {
+        ...dto,
+        notes: null,
+        ownerUid: 'pirate',
+        _id: 'autre-id',
+        $unset: { ownerUid: 1 },
+      };
+
+      await service.update(UID, ID, body as ApplicationDto);
+
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: ID, ownerUid: UID },
+        { $set: { company: 'Acme', position: 'Lead dev', notes: null } },
+        expect.anything(),
+      );
+    });
+
+    it('refuse un champ qui contient un objet au lieu de texte', async () => {
+      const body = { ...dto, company: { $ne: '' } };
+      await expect(
+        service.update(UID, ID, body as unknown as ApplicationDto),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
     });
 
     it("lève NotFound si la candidature n'existe pas", async () => {
