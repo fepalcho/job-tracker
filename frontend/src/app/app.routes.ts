@@ -1,11 +1,14 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
-import { LoginPage } from './login-page';
-import { ApplicationsPage } from './applications-page';
 
+// Pages chargées à la demande : Material n'alourdit pas le bundle initial.
 export const routes: Routes = [
-  { path: 'login', component: LoginPage },
-  { path: 'applications', component: ApplicationsPage, canActivate: [authGuard] },
+  { path: 'login', loadComponent: () => import('./login-page').then((m) => m.LoginPage) },
+  {
+    path: 'applications',
+    loadComponent: () => import('./applications-page').then((m) => m.ApplicationsPage),
+    canActivate: [authGuard],
+  },
   { path: '', pathMatch: 'full', redirectTo: 'applications' },
   { path: '**', redirectTo: 'applications' },
 ];
